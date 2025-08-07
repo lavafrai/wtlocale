@@ -6,6 +6,8 @@ edition = "2024"
 [dependencies]
 slint = "1.12"
 rfd = "0.15"
+regex = "1.11"
+rustring_builder = "0.2"
 
 [build-dependencies]
 slint-build = "1.12"

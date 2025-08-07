@@ -1,21 +1,14 @@
-mod game_folder;
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod game_folder;
+mod locale_editor;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let game_folder = game_folder::get()?;
     println!("Game folder selected: {}", game_folder);
 
-    /*ui.on_request_increase_counter(move || {
-        let ui = ui_handle.unwrap();
-        ui.set_counter(ui.get_counter() + 1);
-    });
+    let game_path = std::path::PathBuf::from(&game_folder);
+    locale_editor::run(&game_path)?;
 
-    let files = FileDialog::new()
-        .pick_folder();
-    if files.is_some() {
-        println!("{:#?}", files);
-    }
-
-    ui.run()*/
     Ok(())
 }

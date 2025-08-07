@@ -1,16 +1,21 @@
 import { Button, VerticalBox, HorizontalBox, LineEdit } from "std-widgets.slint";
 
 export component GameFolderSelector inherits Window {
-    in-out property <string> selected-folder-text: "";
+    in property <string> error;
+    in property <string> selected-folder-text;
+    in property <bool> continuation-allowed: false;
     callback request-file-dialog-open();
+    callback request-continue();
 
-    min-width: 720px;
-    min-height: 480px;
+    min-width: 320px;
+    min-height: 144px;
+    title: "Выбор каталога";
+    icon: @image-url("../assets/icon.png");
 
     VerticalBox {
         Text {
             text: "Выберите каталог с игрой";
-            font-size: 24px;
+            font-size: 2rem;
         }
 
         HorizontalBox {
@@ -24,6 +29,26 @@ export component GameFolderSelector inherits Window {
                 width: 100px;
                 clicked => {
                     request-file-dialog-open()
+                }
+            }
+        }
+
+        HorizontalBox {
+            alignment: end;
+            height: 42px;
+
+            Text {
+                text: error;
+                color: red;
+                font-size: 16px;
+            }
+
+            Button {
+                text: "Продолжить";
+                width: 120px;
+                enabled: continuation-allowed;
+                clicked => {
+                    request-continue()
                 }
             }
         }
