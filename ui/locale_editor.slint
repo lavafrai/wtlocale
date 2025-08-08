@@ -5,6 +5,7 @@ export component LocaleEditorUI inherits Window {
     in property <bool> localization-files-created;
     in property <[string]> available-locales;
     in property <string> selected-locale;
+    in property <bool> loading-locales;
 
     callback request-clipboard-locale-debug();
     callback request-open-config-blk();
@@ -98,7 +99,17 @@ export component LocaleEditorUI inherits Window {
             font-size: 18px;
         }
 
-        HorizontalBox {
+        // Show loading indicator or the locales list
+        if (loading-locales): HorizontalBox {
+            alignment: start;
+            Text {
+                text: "Загрузка локалей...";
+                font-size: 16px;
+            }
+        }
+        // Show locales list when not loading
+        if (!loading-locales): HorizontalBox {
+
             alignment: start;
             ComboBox {
                 model: available-locales;
