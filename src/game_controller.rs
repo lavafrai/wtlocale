@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::error::Error;
 use std::path::{Path, PathBuf};
 use regex::Regex;
 use rustring_builder::StringBuilder;
@@ -40,7 +41,7 @@ pub fn get_locale_path(
 
 fn read_debug_config(
     game_path: &Path
-) -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
+) -> Result<HashMap<String, String>, Box<dyn Error>> {
     let config_path = game_path.join("config.blk");
     if !config_path.exists() {
         return Err("Debug config file not found".into());
