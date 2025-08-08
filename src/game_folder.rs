@@ -7,7 +7,7 @@ slint::include_modules!();
 pub fn get() -> Result<String, Box<dyn std::error::Error>> {
     let selected_folder = Rc::new(RefCell::new(None));
 
-    let ui = GameFolderSelector::new()?;
+    let ui = GameFolderSelectorUI::new()?;
     let ui_handle_1 = ui.as_weak();
     let ui_handle_2 = ui.as_weak();
 

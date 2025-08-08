@@ -1,44 +1,85 @@
-use std::collections::HashMap;
+use std::error::Error;
+use crate::game_controller::{
+    create_game_controller, get_config_blk_path, is_debug_localization_enabled,
+    is_localization_files_created,
+};
+use arboard::Clipboard;
 use std::path::Path;
-use regex::Regex;
-use rustring_builder::StringBuilder;
+use std::rc::Rc;
+use slint::{ModelRc, SharedString, VecModel};
+use crate::locale_cotroller::LocaleController;
 
-pub fn run(game_folder: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    read_debug_config(game_folder)?;
+slint::include_modules!();
+
+pub fn run(game_folder: &Path) -> Result<(), Box<dyn Error>> {
+    // Initialize game controller
+    let controller = Rc::new(create_game_controller(game_folder));
+    let locale_controller = Rc::new(LocaleController::new(&controller));
+    let initial_debug_enabled = is_debug_localization_enabled(&controller);
+    let initial_localization_files_created = is_localization_files_created(&controller);
+    // Initialize UI
+    let ui = LocaleEditorUI::new()?;
+    let ui_weak = ui.as_weak();
+
+    if initial_debug_enabled && initial_localization_files_created {
+        update_locale_state(&ui, &locale_controller, None);
+    }
+
+
+    // Copy debug locale to clipboard
+    ui.on_request_clipboard_locale_debug(|| {
+        let mut clipboard = Clipboard::new().expect("Failed to init clipboard");
+        clipboard
+            .set_text("testLocalization:b=yes".to_owned())
+            .expect("Failed to set clipboard text");
+    });
+
+    // Open config.blk
+    {
+        let controller = Rc::clone(&controller);
+        ui.on_request_open_config_blk(move || {
+            let config_path = get_config_blk_path(&controller);
+            opener::open(config_path).expect("Failed to open config file");
+        });
+    }
+
+    // Recheck debug localization state
+    {
+        let controller = Rc::clone(&controller);
+        let ui_handle = ui_weak.clone();
+        ui.on_request_localization_state_recheck(move || {
+            let enabled = is_debug_localization_enabled(&controller);
+            if let Some(handle) = ui_handle.upgrade() {
+                handle.set_localization_debug_enabled(enabled);
+            }
+
+            let files_created = is_localization_files_created(&controller);
+            if let Some(handle) = ui_handle.upgrade() {
+                handle.set_localization_files_created(files_created);
+            }
+
+            if enabled && files_created {
+                update_locale_state(&ui_handle.unwrap(), &locale_controller, None);
+            }
+        });
+    }
+
+    // Apply initial state
+    ui.set_localization_debug_enabled(initial_debug_enabled);
+    ui.set_localization_files_created(initial_localization_files_created);
+
+    ui.run()?;
+
     Ok(())
 }
 
-fn read_debug_config(game_folder: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let config_path = game_folder.join("config.blk");
-    if !config_path.exists() {
-        return Err("Debug config file not found".into());
-    }
-
-    let content = std::fs::read_to_string(config_path)?;
-    let mut result: HashMap<String, String> = HashMap::new();
-    let mut debug_builder = StringBuilder::new();
-
-    let debug_regex = Regex::new(r"debug\{([\s\S]+?)}").unwrap();
-    for cap in debug_regex.captures_iter(&content) {
-        if let Some(debug_content) = cap.get(1) {
-            let debug_str = debug_content.as_str();
-            debug_builder.append(debug_content.as_str());
-        }
-    }
-    let debug_string = debug_builder.to_string();
-
-    println!("Debug string\n---");
-    println!("{}", debug_string);
-    println!("---");
-
-    let parameter_regex = Regex::new(r"(\S+?)=(\S+?)\r?\n").unwrap();
-    for cap in parameter_regex.captures_iter(debug_string.as_str()) {
-        if let (Some(key), Some(value)) = (cap.get(1), cap.get(2)) {
-            result.insert(key.as_str().to_string(), value.as_str().to_string());
-        }
-    }
-    println!("Parsed Debug Config: {:?}", result);
-
-    Ok(())
+fn update_locale_state(ui: &LocaleEditorUI, locale_controller: &Rc<LocaleController>, selected_locale: Option<String>) {
+    let available_locales = locale_controller.get_available_locales();
+    let shared_locales: Vec<SharedString> = available_locales
+        .iter()
+        .map(|locale| SharedString::from(locale.clone()))
+        .collect();
+    let model = Rc::new(VecModel::from(shared_locales));
+    let model_rc = ModelRc::from(model.clone());
+    ui.set_available_locales(model_rc);
 }
-

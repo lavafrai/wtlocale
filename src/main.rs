@@ -2,6 +2,8 @@
 
 mod game_folder;
 mod locale_editor;
+mod game_controller;
+mod locale_cotroller;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let game_folder = game_folder::get()?;

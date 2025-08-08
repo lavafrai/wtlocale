@@ -1,0 +1,112 @@
+import { VerticalBox, ScrollView, HorizontalBox, Button, ComboBox } from "std-widgets.slint";
+
+export component LocaleEditorUI inherits Window {
+    in property <bool> localization-debug-enabled;
+    in property <bool> localization-files-created;
+    in property <[string]> available-locales;
+    in property <string> selected-locale;
+
+    callback request-clipboard-locale-debug();
+    callback request-open-config-blk();
+    callback request-localization-state-recheck();
+    callback locale-set(string);
+
+    min-width: 720px;
+    min-height: 480px;
+    title: "War Thunder Locale Editor";
+    icon: @image-url("../assets/icon.png");
+
+    if (!localization-debug-enabled): VerticalBox {
+        alignment: stretch;
+        Text {
+            text: "Отладка локализации отключена.";
+            color: red;
+            font-size: 18px;
+        }
+
+        Text {
+            text: "Для включения, откройте файл config.blk и добавьте параметр \"testLocalization:b=yes\".";
+            wrap: word-wrap;
+            font-size: 16px;
+        }
+
+        HorizontalBox {
+            alignment: start;
+
+            Button {
+                text: "Скопировать в буфер обмена";
+                clicked => {
+                    request-clipboard-locale-debug();
+                }
+            }
+
+            Button {
+                text: "Открыть файл config.blk";
+                clicked => {
+                    request-open-config-blk();
+                }
+            }
+
+            Button {
+                text: "Проверить";
+                clicked => {
+                    request-localization-state-recheck()
+                }
+            }
+        }
+
+        ScrollView {
+            vertical-stretch: 1;
+            viewport-height: 512px;
+            Image {
+                source: @image-url("../assets/localization_debug_example.png");
+            }
+        }
+    }
+
+    if (localization-debug-enabled && !localization-files-created): VerticalBox {
+        alignment: start;
+        Text {
+            text: "Отладка включена, но файлы локализации не созданы.";
+            color: red;
+            font-size: 18px;
+        }
+
+        Text {
+            text: "Теперь требуется запустить игру, дождаться загрузки и закрыть.";
+            wrap: word-wrap;
+            font-size: 16px;
+        }
+
+        HorizontalBox {
+            alignment: start;
+
+            Button {
+                text: "Проверить";
+                clicked => {
+                    request-localization-state-recheck();
+                }
+            }
+        }
+    }
+
+    if (localization-debug-enabled && localization-files-created): VerticalBox {
+        alignment: start;
+        Text {
+            text: "Отладка локализации включена и файлы созданы.";
+            color: green;
+            font-size: 18px;
+        }
+
+        HorizontalBox {
+            alignment: start;
+            ComboBox {
+                model: available-locales;
+                current-value: selected-locale;
+                selected(current-value) => {
+                    locale-set(current-value)
+                }
+            }
+        }
+    }
+}

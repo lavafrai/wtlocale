@@ -1,6 +1,6 @@
 import { Button, VerticalBox, HorizontalBox, LineEdit } from "std-widgets.slint";
 
-export component GameFolderSelector inherits Window {
+export component GameFolderSelectorUI inherits Window {
     in property <string> error;
     in property <string> selected-folder-text;
     in property <bool> continuation-allowed: false;
@@ -13,42 +13,42 @@ export component GameFolderSelector inherits Window {
     icon: @image-url("../assets/icon.png");
 
     VerticalBox {
+        alignment: space-between;
         Text {
             text: "Выберите каталог с игрой";
             font-size: 2rem;
         }
 
-        HorizontalBox {
-            height: 42px;
-            LineEdit {
-                text: selected-folder-text;
-                enabled: false;
-            }
-            Button {
-                text: "Выбрать";
-                width: 100px;
-                clicked => {
-                    request-file-dialog-open()
+        VerticalBox {
+            HorizontalBox {
+                LineEdit {
+                    text: selected-folder-text;
+                    enabled: false;
+                }
+
+                Button {
+                    text: "Выбрать";
+                    clicked => {
+                        request-file-dialog-open()
+                    }
                 }
             }
-        }
 
-        HorizontalBox {
-            alignment: end;
-            height: 42px;
+            HorizontalBox {
+                alignment: end;
 
-            Text {
-                text: error;
-                color: red;
-                font-size: 16px;
-            }
+                Text {
+                    text: error;
+                    color: red;
+                    font-size: 16px;
+                }
 
-            Button {
-                text: "Продолжить";
-                width: 120px;
-                enabled: continuation-allowed;
-                clicked => {
-                    request-continue()
+                Button {
+                    text: "Продолжить";
+                    enabled: continuation-allowed;
+                    clicked => {
+                        request-continue()
+                    }
                 }
             }
         }
