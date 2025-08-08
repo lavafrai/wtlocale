@@ -46,6 +46,7 @@ pub fn run(game_folder: &Path) -> Result<(), Box<dyn Error>> {
     // Recheck debug localization state
     {
         let controller = Rc::clone(&controller);
+        let locale_controller = Rc::clone(&locale_controller);
         let ui_handle = ui_weak.clone();
         ui.on_request_localization_state_recheck(move || {
             let enabled = is_debug_localization_enabled(&controller);
@@ -61,6 +62,14 @@ pub fn run(game_folder: &Path) -> Result<(), Box<dyn Error>> {
             if enabled && files_created {
                 update_locale_state(&ui_handle.unwrap(), &locale_controller, None);
             }
+        });
+    }
+
+    {
+        let locale_controller = Rc::clone(&locale_controller);
+        let ui_handle = ui_weak.clone();
+        ui.on_locale_set(move |new_locale| {
+            update_locale_state(&ui_handle.unwrap(), &locale_controller, Some(new_locale.to_string()));
         });
     }
 
@@ -82,4 +91,16 @@ fn update_locale_state(ui: &LocaleEditorUI, locale_controller: &Rc<LocaleControl
     let model = Rc::new(VecModel::from(shared_locales));
     let model_rc = ModelRc::from(model.clone());
     ui.set_available_locales(model_rc);
+
+    let selected_locale = selected_locale
+        .or_else(|| available_locales.first().cloned())
+        .unwrap_or_default();
+    ui.set_selected_locale(SharedString::from(selected_locale.clone()));
+
+    let locale_texts = locale_controller.get_locale_texts(&selected_locale);
+    let locale_texts_with_restriction_count = locale_texts.iter()
+        .filter(|text| text.max_chars > 0)
+        .count();
+    println!("Locale '{}' has {} texts with restrictions", selected_locale, locale_texts_with_restriction_count);
+    // println!("{:?}", locale_texts);
 }

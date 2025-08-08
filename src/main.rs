@@ -6,7 +6,7 @@ mod game_controller;
 mod locale_cotroller;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let game_folder = game_folder::get()?;
+    let game_folder = "D:\\SteamLibrary\\steamapps\\common\\War Thunder"; // game_folder::get()?;
     println!("Game folder selected: {}", game_folder);
 
     let game_path = std::path::PathBuf::from(&game_folder);
