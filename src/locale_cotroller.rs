@@ -117,4 +117,36 @@ impl LocaleController {
             .flat_map(|cat| self.get_locale_text_for_category(locale, cat))
             .collect()
     }
+
+    pub fn edit_text(&self, locale: &String, tag: &String, category: &String, new_text: &String) {
+        let file_path = format!("{}/{}.csv", self.locale_path, category);
+        let file_content = std::fs::read_to_string(&file_path)
+            .expect(&format!("Failed to read file {}", file_path));
+        let mut reader = csv::ReaderBuilder::new()
+            .has_headers(true)
+            .delimiter(b';')
+            .from_reader(file_content.as_bytes());
+        let mut writer = csv::WriterBuilder::new()
+            .has_headers(true)
+            .delimiter(b';')
+            .from_path(&file_path)
+            .expect(&format!("Failed to open CSV for writing {}", file_path));
+
+        let headers = reader.headers().expect("Failed to read headers");
+        let tag_idx = headers.iter()
+            .position(|h| h == "<ID|readonly|noverify>")
+            .expect("<ID|readonly|noverify> header not found");
+        let locale_idx = Self::get_locale_column_index(headers, locale);
+
+        writer.write_record(headers).unwrap();
+
+        for record in reader.records() {
+            let record = record.expect("Failed to read record");
+            let mut record_vec = record.iter().collect::<Vec<_>>();
+            if record_vec[tag_idx] == tag {
+                record_vec[locale_idx] = new_text;
+            }
+            writer.write_record(&record_vec).expect("Failed to write record");
+        }
+    }
 }

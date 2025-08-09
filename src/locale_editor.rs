@@ -109,8 +109,17 @@ pub fn run(game_folder: &Path) -> Result<(), Box<dyn Error>> {
     {
         let locale_controller = Arc::clone(&locale_controller);
         let ui_handle = ui_weak.clone();
-        ui.on_edit_request(|model, new| {
+        ui.on_edit_request(move |model, new| {
             println!("Edit request for model: {:?}, new text: {}", model, new);
+            let ui = ui_handle.unwrap();
+            let selected_locale = ui.get_selected_locale().to_string();
+            locale_controller.edit_text(
+                &selected_locale,
+                &model.tag.to_string(),
+                &model.category.to_string(),
+                &new.to_string(),
+            );
+            update_locale_state(&ui, Arc::clone(&locale_controller), Some(selected_locale.to_string()));
         });
     }
 
