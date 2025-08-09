@@ -1,6 +1,8 @@
-use crate::game_controller::{GameController, get_locale_path};
+use crate::game_controller::{ GameController, get_locale_path };
+
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct LocaleText {
     pub lang: String,
     pub tag: String,
@@ -44,7 +46,7 @@ impl LocaleController {
         locales
     }
 
-    fn get_locale_categories(&self) -> Vec<String> {
+    pub fn get_locale_categories(&self) -> Vec<String> {
         let denied_categories = vec!["_missing"];
         let files = std::fs::read_dir(&self.locale_path)
             .expect("Failed to read locale directory");

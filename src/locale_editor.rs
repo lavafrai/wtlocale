@@ -9,7 +9,7 @@ use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 use slint::{ModelRc, SharedString, VecModel, invoke_from_event_loop};
-use crate::locale_cotroller::LocaleController;
+use crate::locale_cotroller::{LocaleController, LocaleText};
 
 slint::include_modules!();
 
@@ -75,6 +75,16 @@ pub fn run(game_folder: &Path) -> Result<(), Box<dyn Error>> {
         });
     }
 
+    {
+        let locale_controller = Arc::clone(&locale_controller);
+        let ui_handle = ui_weak.clone();
+        ui.on_category_set(move |category| {
+            let ui = ui_handle.unwrap();
+            ui.set_selected_category(SharedString::from(category.to_string()));
+            update_locale_state(&ui, Arc::clone(&locale_controller), Some(ui.get_selected_locale().to_string()));
+        });
+    }
+
     // Apply initial state
     ui.set_localization_debug_enabled(initial_debug_enabled);
     ui.set_localization_files_created(initial_localization_files_created);
@@ -90,6 +100,8 @@ fn update_locale_state(ui: &LocaleEditorUI, locale_controller: Arc<LocaleControl
     let ui_weak = ui.as_weak();
     let controller = Arc::clone(&locale_controller);
     let selected_opt = selected_locale.clone();
+    let selected_category = ui.get_selected_category();
+
     thread::spawn(move || {
         // Load data in background
         let available_locales = controller.get_available_locales();
@@ -97,20 +109,59 @@ fn update_locale_state(ui: &LocaleEditorUI, locale_controller: Arc<LocaleControl
             .or_else(|| available_locales.first().cloned())
             .unwrap_or_default();
         let texts = controller.get_locale_texts(&selected);
+
+        let filtered_texts: Vec<LocaleText> = texts.clone().into_iter()
+            .filter(
+                |it| {
+                    let selected_category = selected_category.to_string();
+                    it.category == selected_category
+                }
+            )
+            .collect();
+
+        let categories = controller.get_locale_categories();
         println!("Locale '{}' has {} texts", selected, texts.len());
         // Update UI in UI thread
         invoke_from_event_loop(move || {
+            let ui = ui_weak.unwrap();
             if let Some(handle) = ui_weak.upgrade() {
-                let shared: Vec<SharedString> = available_locales
-                    .iter()
-                    .map(|l| SharedString::from(l.clone()))
-                    .collect();
-                let model = Rc::new(VecModel::from(shared));
-                let model_rc = ModelRc::from(model.clone());
-                handle.set_available_locales(model_rc);
+                let shared_locales: ModelRc<SharedString> = string_vec_to_model(available_locales.clone());
+                handle.set_available_locales(shared_locales);
+
                 handle.set_selected_locale(SharedString::from(selected.clone()));
                 handle.set_loading_locales(false);
+
+                let shared_categories: ModelRc<SharedString> = string_vec_to_model(categories.clone());
+                handle.set_available_categories(shared_categories);
+
+                let locale_all_texts = texts.iter()
+                    .map(|it| locale_text_to_model(it))
+                    .collect::<Vec<_>>();
+                let locale_all_model = ModelRc::from(Rc::new(VecModel::from(locale_all_texts)));
+                handle.set_locale_texts(locale_all_model);
+
+                let locale_text_models = filtered_texts.iter()
+                    .map(|it| locale_text_to_model(it))
+                    .collect::<Vec<_>>();
+                let locale_model = ModelRc::from(Rc::new(VecModel::from(locale_text_models)));
+                ui.set_locale_texts(locale_model);
             }
         }).expect("");
     });
+}
+
+fn string_vec_to_model(strings: Vec<String>) -> ModelRc<SharedString> {
+    let shared_strings: Vec<SharedString> = strings.into_iter()
+        .map(|s| SharedString::from(s))
+        .collect();
+    ModelRc::from(Rc::new(VecModel::from(shared_strings)))
+}
+
+fn locale_text_to_model(text: &LocaleText) -> LocaleTextModel {
+    LocaleTextModel {
+        tag: SharedString::from(text.tag.clone()),
+        text: SharedString::from(text.text.clone()),
+        category: SharedString::from(text.category.clone()),
+        max_chars: text.max_chars.cast_signed(),
+    }
 }

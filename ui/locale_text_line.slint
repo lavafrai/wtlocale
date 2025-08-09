@@ -1,0 +1,59 @@
+import { VerticalBox, ScrollView, HorizontalBox, Button, Palette } from "std-widgets.slint";
+
+export struct LocaleTextModel {
+    tag: string,
+    text: string,
+    category: string,
+    max_chars: int,
+}
+
+export component LocaleTextLine inherits Rectangle {
+    in property <LocaleTextModel> locale-text;
+    in property <bool> even;
+
+    background: even ? Palette.control-background : transparent;
+    border-radius: 4px;
+
+    row-box := HorizontalBox {
+        width: parent.width;
+        padding-left: 0px;
+        padding-right: 0px;
+        spacing: 5px;
+        property <length> width-without-spacing: parent.width - 10px;
+
+        alignment: stretch;
+        Text {
+            text: locale-text.tag;
+            font-size: 16px;
+            width: width-without-spacing / 5;
+            wrap: no-wrap;
+            overflow: elide;
+        }
+
+        Text {
+            text: locale-text.text;
+            font-size: 16px;
+            width: (width-without-spacing / 5) * 3;
+            wrap: no-wrap;
+            overflow: elide;
+        }
+
+        Rectangle {
+            border-radius: 8px;
+            background: Palette.accent-background;
+            width: width-without-spacing / 5;
+            HorizontalBox {
+                padding: 0;
+                alignment: center;
+                Text {
+                    padding: 5px;
+                    color: Palette.accent-foreground;
+                    text: locale-text.category;
+                    font-size: 16px;
+                    wrap: no-wrap;
+                    overflow: elide;
+                }
+            }
+        }
+    }
+}

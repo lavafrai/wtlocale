@@ -1,4 +1,5 @@
-import { VerticalBox, ScrollView, HorizontalBox, Button, ComboBox } from "std-widgets.slint";
+import { VerticalBox, ScrollView, HorizontalBox, Button, ComboBox, ListView, Spinner } from "std-widgets.slint";
+import { LocaleTextLine, LocaleTextModel } from "locale_text_line.slint";
 
 export component LocaleEditorUI inherits Window {
     in property <bool> localization-debug-enabled;
@@ -6,11 +7,16 @@ export component LocaleEditorUI inherits Window {
     in property <[string]> available-locales;
     in property <string> selected-locale;
     in property <bool> loading-locales;
+    in-out property <[LocaleTextModel]> all-locale-texts;
+    in property <[LocaleTextModel]> locale-texts;
+    in-out property <string> selected-category;
+    in property <[string]> available-categories;
 
     callback request-clipboard-locale-debug();
     callback request-open-config-blk();
     callback request-localization-state-recheck();
     callback locale-set(string);
+    callback category-set(string);
 
     min-width: 720px;
     min-height: 480px;
@@ -92,30 +98,63 @@ export component LocaleEditorUI inherits Window {
     }
 
     if (localization-debug-enabled && localization-files-created): VerticalBox {
-        alignment: start;
+        padding-bottom: 0;
+        alignment: stretch;
         Text {
             text: "Отладка локализации включена и файлы созданы.";
             color: green;
             font-size: 18px;
         }
 
-        // Show loading indicator or the locales list
         if (loading-locales): HorizontalBox {
+            vertical-stretch: 1;
             alignment: start;
-            Text {
-                text: "Загрузка локалей...";
-                font-size: 16px;
+            VerticalBox {
+                alignment: start;
+                HorizontalBox {
+                    Spinner {
+                        indeterminate: true;
+                    }
+
+                    Text {
+                        text: "Загрузка локалей...";
+                        font-size: 16px;
+                    }
+                }
             }
         }
-        // Show locales list when not loading
-        if (!loading-locales): HorizontalBox {
+        if (!loading-locales): VerticalBox {
+            padding: 0;
+            vertical-stretch: 1;
+            alignment: stretch;
 
-            alignment: start;
-            ComboBox {
-                model: available-locales;
-                current-value: selected-locale;
-                selected(current-value) => {
-                    locale-set(current-value)
+            HorizontalBox {
+                alignment: start;
+                ComboBox {
+                    model: available-locales;
+                    current-value: selected-locale;
+                    selected(current-value) => {
+                        locale-set(current-value)
+                    }
+                }
+
+                ComboBox {
+                    model: available-categories;
+                    current-value: selected-category;
+                    selected(current-value) => {
+                        category-set(current-value)
+                    }
+                }
+            }
+
+            texts-list := ListView {
+                vertical-stretch: 1;
+                padding-left: 0px;
+                padding-right: 0px;
+                for locale-text[idx] in locale-texts: LocaleTextLine {
+                    //width: texts-list.width;
+                    even: mod(idx, 2) == 0;
+                    locale-text: locale-text;
                 }
             }
         }
