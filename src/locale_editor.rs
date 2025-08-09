@@ -8,7 +8,7 @@ use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
-use slint::{ModelRc, SharedString, VecModel, invoke_from_event_loop};
+use slint::{ModelRc, SharedString, VecModel, invoke_from_event_loop, Model};
 use crate::locale_cotroller::{LocaleController, LocaleText};
 
 slint::include_modules!();
@@ -78,10 +78,39 @@ pub fn run(game_folder: &Path) -> Result<(), Box<dyn Error>> {
     {
         let locale_controller = Arc::clone(&locale_controller);
         let ui_handle = ui_weak.clone();
+        ui.on_update_search_text(move |text| {
+            let search_text = text.to_string();
+            let ui = ui_handle.unwrap();
+            let all_texts = ui.get_all_locale_texts();
+            let filtered_texts: Vec<LocaleTextModel> = all_texts
+                .iter()
+                .filter(|it| {
+                    let search_text_normalized = search_text.to_lowercase();
+                    let tag_normalized = it.tag.to_string().to_lowercase();
+                    let text_normalized = it.text.to_string().to_lowercase();
+                    tag_normalized.contains(&search_text_normalized) || text_normalized.contains(&search_text_normalized)
+                })
+                .collect();
+            let locale_model = ModelRc::from(Rc::new(VecModel::from(filtered_texts)));
+            ui.set_locale_texts(locale_model);
+        })
+    }
+
+    {
+        let locale_controller = Arc::clone(&locale_controller);
+        let ui_handle = ui_weak.clone();
         ui.on_category_set(move |category| {
             let ui = ui_handle.unwrap();
             ui.set_selected_category(SharedString::from(category.to_string()));
             update_locale_state(&ui, Arc::clone(&locale_controller), Some(ui.get_selected_locale().to_string()));
+        });
+    }
+
+    {
+        let locale_controller = Arc::clone(&locale_controller);
+        let ui_handle = ui_weak.clone();
+        ui.on_edit_request(|model, new| {
+            println!("Edit request for model: {:?}, new text: {}", model, new);
         });
     }
 
@@ -138,7 +167,7 @@ fn update_locale_state(ui: &LocaleEditorUI, locale_controller: Arc<LocaleControl
                     .map(|it| locale_text_to_model(it))
                     .collect::<Vec<_>>();
                 let locale_all_model = ModelRc::from(Rc::new(VecModel::from(locale_all_texts)));
-                handle.set_locale_texts(locale_all_model);
+                handle.set_all_locale_texts(locale_all_model);
 
                 let locale_text_models = filtered_texts.iter()
                     .map(|it| locale_text_to_model(it))

@@ -1,4 +1,4 @@
-import { VerticalBox, ScrollView, HorizontalBox, Button, Palette } from "std-widgets.slint";
+import { VerticalBox, ScrollView, HorizontalBox, Button, Palette, LineEdit, TextEdit } from "std-widgets.slint";
 
 export struct LocaleTextModel {
     tag: string,
@@ -10,6 +10,22 @@ export struct LocaleTextModel {
 export component LocaleTextLine inherits Rectangle {
     in property <LocaleTextModel> locale-text;
     in property <bool> even;
+    property <bool> editing;
+
+    callback edit-staring();
+    callback edit-requested(string);
+
+    area := TouchArea {
+        width: parent.width;
+        height: parent.height;
+
+        double-clicked => {
+            if (!editing) {
+                edit-staring();
+                editing = true;
+            }
+        }
+    }
 
     background: even ? Palette.control-background : transparent;
     border-radius: 4px;
@@ -30,30 +46,65 @@ export component LocaleTextLine inherits Rectangle {
             overflow: elide;
         }
 
-        Text {
+        if (!editing): Text {
             text: locale-text.text;
             font-size: 16px;
             width: (width-without-spacing / 5) * 3;
             wrap: no-wrap;
             overflow: elide;
         }
-
-        Rectangle {
-            border-radius: 8px;
-            background: Palette.accent-background;
-            width: width-without-spacing / 5;
+        if (editing): VerticalBox {
+            padding: 0;
+            width: (width-without-spacing / 5) * 3;
+            edit-text := TextEdit {
+                min-height: 8rem;
+                text: locale-text.text;
+            }
             HorizontalBox {
                 padding: 0;
-                alignment: center;
-                Text {
-                    padding: 5px;
-                    color: Palette.accent-foreground;
-                    text: locale-text.category;
-                    font-size: 16px;
-                    wrap: no-wrap;
-                    overflow: elide;
+                alignment: end;
+                Button {
+                    text: "Отмена";
+                    clicked => {
+                        editing = false;
+                    }
+                }
+                Button {
+                    text: "Сохранить";
+                    clicked => {
+                        edit-requested(edit-text.text);
+                        editing = false;
+                    }
+                }
+            }
+        }
+
+        VerticalBox {
+            padding: 0;
+            alignment: start;
+            Rectangle {
+                border-radius: 8px;
+                background: Palette.accent-background;
+                width: width-without-spacing / 5;
+                HorizontalBox {
+                    padding: 0;
+                    alignment: center;
+                    Text {
+                        padding: 5px;
+                        color: Palette.accent-foreground;
+                        text: locale-text.category;
+                        font-size: 16px;
+                        wrap: no-wrap;
+                        overflow: elide;
+                    }
                 }
             }
         }
     }
+
+    states [
+        hover when area.has-hover: {
+            background: root.even ? Palette.control-background.transparentize(0.4) : Palette.control-background.transparentize(0.6);
+        }
+    ]
 }

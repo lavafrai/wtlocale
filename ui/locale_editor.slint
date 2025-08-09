@@ -1,4 +1,4 @@
-import { VerticalBox, ScrollView, HorizontalBox, Button, ComboBox, ListView, Spinner } from "std-widgets.slint";
+import { VerticalBox, ScrollView, HorizontalBox, Button, ComboBox, ListView, Spinner, LineEdit } from "std-widgets.slint";
 import { LocaleTextLine, LocaleTextModel } from "locale_text_line.slint";
 
 export component LocaleEditorUI inherits Window {
@@ -9,14 +9,17 @@ export component LocaleEditorUI inherits Window {
     in property <bool> loading-locales;
     in-out property <[LocaleTextModel]> all-locale-texts;
     in property <[LocaleTextModel]> locale-texts;
-    in-out property <string> selected-category;
+    in-out property <string> selected-category: "menu";
     in property <[string]> available-categories;
+    in-out property <string> search-text;
 
     callback request-clipboard-locale-debug();
     callback request-open-config-blk();
     callback request-localization-state-recheck();
     callback locale-set(string);
     callback category-set(string);
+    callback update-search-text(string);
+    callback edit-request(LocaleTextModel, string);
 
     min-width: 720px;
     min-height: 480px;
@@ -129,8 +132,10 @@ export component LocaleEditorUI inherits Window {
             alignment: stretch;
 
             HorizontalBox {
-                alignment: start;
+                alignment: stretch;
                 ComboBox {
+                    max-width: 150px;
+                    horizontal-stretch: 1;
                     model: available-locales;
                     current-value: selected-locale;
                     selected(current-value) => {
@@ -138,7 +143,18 @@ export component LocaleEditorUI inherits Window {
                     }
                 }
 
+                LineEdit {
+                    horizontal-stretch: 1;
+                    placeholder-text: "Поиск по тегу или тексту";
+                    text: "";
+                    edited(text) => {
+                        update-search-text(text);
+                    }
+                }
+
                 ComboBox {
+                    max-width: 150px;
+                    horizontal-stretch: 1;
                     model: available-categories;
                     current-value: selected-category;
                     selected(current-value) => {
@@ -151,10 +167,15 @@ export component LocaleEditorUI inherits Window {
                 vertical-stretch: 1;
                 padding-left: 0px;
                 padding-right: 0px;
-                for locale-text[idx] in locale-texts: LocaleTextLine {
+                for locale-text[idx] in locale-texts: list := LocaleTextLine {
                     //width: texts-list.width;
                     even: mod(idx, 2) == 0;
                     locale-text: locale-text;
+
+                    edit-staring => {}
+                    edit-requested(new) => {
+                        edit-request(locale-text, new);
+                    }
                 }
             }
         }
